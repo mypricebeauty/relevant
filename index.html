@@ -175,13 +175,112 @@
       padding: 0;
     }
 
+    /* Горизонтальная лента разделов со стрелками и перетаскиванием на ПК */
+    .nav-chips-outer {
+      position: relative;
+      display: flex;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .nav-chips-outer::before,
+    .nav-chips-outer::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 46px;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+
+    .nav-chips-outer::before {
+      left: 0;
+      background: linear-gradient(to right, rgba(255, 255, 255, 0.98) 45%, rgba(255, 255, 255, 0));
+    }
+
+    .nav-chips-outer::after {
+      right: 0;
+      background: linear-gradient(to left, rgba(255, 255, 255, 0.98) 45%, rgba(255, 255, 255, 0));
+    }
+
+    .nav-chips-outer.can-left::before {
+      opacity: 1;
+    }
+
+    .nav-chips-outer.can-right::after {
+      opacity: 1;
+    }
+
+    .chips-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 3;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #1e293b;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease, border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .chips-arrow:hover {
+      border-color: var(--brand-blue);
+      color: var(--brand-blue);
+      background: #f8fbff;
+    }
+
+    .chips-arrow svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    .chips-arrow-left {
+      left: 0;
+    }
+
+    .chips-arrow-right {
+      right: 0;
+    }
+
+    .nav-chips-outer.can-left .chips-arrow-left {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .nav-chips-outer.can-right .chips-arrow-right {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
     .nav-chips {
       display: flex;
       gap: 6px;
       overflow-x: auto;
-      padding: 10px 2px 2px;
+      width: 100%;
+      padding: 2px;
       scrollbar-width: none;
       -ms-overflow-style: none;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .nav-chips.dragging {
+      cursor: grabbing;
+      scroll-behavior: auto;
     }
 
     .nav-chips::-webkit-scrollbar {
@@ -199,7 +298,12 @@
       border-radius: 999px;
       cursor: pointer;
       white-space: nowrap;
+      user-select: none;
       transition: all 0.15s ease;
+    }
+
+    .nav-chips.dragging .nav-chip {
+      cursor: grabbing;
     }
 
     .nav-chip:hover {
@@ -386,6 +490,16 @@
         font-size: 11.5px;
       }
 
+      .chips-arrow,
+      .nav-chips-outer::before,
+      .nav-chips-outer::after {
+        display: none !important;
+      }
+
+      .nav-chips {
+        cursor: auto;
+      }
+
       .price-table col.col-price {
         width: 82px;
       }
@@ -454,7 +568,19 @@
         <input type="search" id="searchInput" class="search-input" placeholder="Поиск по препарату или процедуре...">
         <button type="button" id="clearBtn" class="search-clear" aria-label="Очистить поиск">✕</button>
       </div>
-      <div id="navChips" class="nav-chips"></div>
+      <div id="navChipsOuter" class="nav-chips-outer">
+        <button type="button" id="chipsPrev" class="chips-arrow chips-arrow-left" aria-label="Прокрутить разделы влево">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+        <div id="navChips" class="nav-chips"></div>
+        <button type="button" id="chipsNext" class="chips-arrow chips-arrow-right" aria-label="Прокрутить разделы вправо">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+      </div>
     </div>
 
     <main id="priceContainer"></main>
@@ -476,13 +602,24 @@
     // ССЫЛКА НА GOOGLE ТАБЛИЦУ (Оставьте пустой для работы встроенного прайса
     // или вставьте ссылку из меню Файл -> Поделиться -> Опубликовать в интернете -> CSV)
     // =========================================================================
-    const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTI851DlyqJxH2-p4QeANeFXtU0qCqu9wSUVAN4dkmN7SIX_uXhucJsEEWZx2lvMfjR8XHWxWaVY-xO/pub?gid=1792984268&single=true&output=csv";
+    const GOOGLE_SHEET_CSV_URL = "";
 
     // Полный встроенный прайс-лист (работает мгновенно даже без подключения таблицы)
     const DEFAULT_ROWS = [["Радиес (Radiesse)", "руб."], ["Радиес (Radiesse) 1,5 мл", "25000"], ["Радиес (Radiesse) 3,0 мл", "45000"], ["Канюля", "1000"], ["Анестезия", "1000"], ["Полимолочная кислота (Эстефил)", "руб."], ["Эстефил (AestheFill) 1 флакон", "43000"], ["L (+) Lift 1 флакон", "43000"], ["Lenisna 1 флакон", "43000"], ["Juvelook (Джувелук) 1 флакон", "40000"], ["Канюля", "1000"], ["Анестезия", "1000"], ["Ботокс (Botox)", "руб."], ["ЛИЦО (цена за 1 единицу)", ""], ["Миотокс", "300"], ["ПОДМЫШКИ (100 единиц)", ""], ["Миотокс", "19000"], ["Гипергидроз (Миотокс)", "руб."], ["ПОДМЫШКИ (100 единиц)", ""], ["Миотокс", "19000"], ["Анестезия", "1000"], ["Контурная пластика", "руб."], ["Juvederm Ultra 3 1.0 мл", "20000"], ["Juvederm Smile 0.55 мл", "15000"], ["", ""], ["Belotero Soft 1.0 мл", "17000"], ["Belotero Balance 1.0 мл", "18000"], ["Belotero Intense 1.0 мл", "19000"], ["Belotero Volume 1.0 мл", "19000"], ["Belotero Lips Shape 0.6 мл", "15000"], ["Belotero Lips Contour 0.6 мл", "15000"], ["", ""], ["Канюля", "1000"], ["Увеличение губ", "руб."], ["Губы", ""], ["Juvederm Ultra 3 1.0 мл", "20000"], ["Juvederm Smile 0.55 мл", "15000"], ["", ""], ["Belotero Balance 1.0 мл", "20000"], ["Belotero Intense 1.0 мл", "20000"], ["Belotero Lips Shape 0.6 мл", "15000"], ["Belotero Lips Contour 0.6 мл", "15000"], ["Мезонити (армирующие)", "руб."], ["PDO (из полидиоксанона) – моно, твин, спираль", "550"], ["PLLA (из полимолочной кислоты) – моно, твин, спираль", "700"], ["PLLA (из полимолочной кислоты) – микронити", "400"], ["Анестезия", "1000"], ["Биоревитализация", "руб."], ["Meso-Wharton P199 1.5 мл", "15000"], ["Meso-Xanthin F199 1.5 мл", "15000"], ["Teosyal Redensity I 1.0 мл", "12000"], ["Teosyal Redensity I 3.0 мл", "18500"], ["Restylane Vital 1.0 мл", "16000"], ["Belotero Revive 1.0 мл", "14500"], ["Revi Silk 2.0 мл", "15000"], ["Revi Strong 2.0 мл", "16000"], ["Neauvia Hydro Delux 2.5 мл", "15000"], ["Neauvia Hydro Delux 5.0 мл", "25000"], ["Plinest (Плинест) 2.0 мл", "16500"], ["Welle Multiactive 2.0 мл", "15000"], ["Welle Vasis 2.0 мл", "15000"], ["Welle Stretch 2.0 мл", "15000"], ["RRS HA Long Lasting 3.0 мл", "20000"], ["Meso Sculpt 1.0 мл", "12000"], ["Aquashine 2.0 мл", "9900"], ["Aquashine BR 2.0 мл", "9900"], ["Ial – system 1.1 мл", "12500"], ["Анестезирующий крем", "1000"], ["", ""], ["Для зоны вокруг глаз", ""], ["СФЕРОгель Лайт 1.0 мл", "11500"], ["СФЕРОгель Медиум 0,5 мл", "9500"], ["СФЕРОгель Медиум 1.0 мл", "13500"], ["СФЕРОгель Лонг 0.5 мл", "12000"], ["Meso Eye 1.0 мл", "13000"], ["Revi Eye 1.0 мл", "9000"], ["Гиалрипайер Лифт Айс 1.0 мл", "8000"], ["Plinest Fast 1.0 мл", "9000"], ["Plinest Fast 2.0 мл", "16500"], ["Коллост Микро 50 мг", "8000"], ["Анестезия", "500"], ["Коллагенотерапия", "руб."], ["Коллост Микро 150 мг", "16000"], ["Коллост Микро 450 мг", "34000"], ["Сферогель Лайт 1.0 мл", "14000"], ["Сферогель Медиум 1.0 мл", "17000"], ["Сферогель Лайт 2.0 мл", "20000"], ["Сферогель Медиум 2.0 мл", "24000"], ["Анестезия", "1000"], ["ПДРН", "руб."], ["Plinest (Плинест) 2.0 мл", "16500"], ["Plinest Fast 2.0 мл", "16500"], ["NucleoForm 2.0 мл", "15000"], ["NucleoForm Rich 2.0 мл", "15000"], ["Bellarti Nucleo 20 2.0 мл", "15000"], ["Bellarti Nucleo 7,5 2.0 мл", "15000"], ["", ""], ["Канюля", "1000"], ["Биорепарация (Гиалрипайер)", "руб."], ["Гиалрипайер-02 (шприц) 1.5 мл", "14000"], ["Гиалрипайер-04 (шприц) 1.5 мл", "14000"], ["Гиалрипайер-08 (шприц) 1.5 мл", "14000"], ["Анестезирующий крем", "1000"], ["Плазмотерапия (пробирки T-lab)", "руб."], ["Лицо", "9000"], ["Лицо + шея", "11000"], ["Лицо + шея + декольте", "13000"], ["Волосистая часть головы", "5000"], ["Лицо + волосистая часть головы", "12000"], ["Анестезирующий крем", "1000"], ["Мезотерапия лица", "руб."], ["Гиалрепайер-06 5мл", "9000"], ["Гиалрепайер-07 5мл", "9000"], ["Гиалрепайер-05 Эндо 5мл", "10000"], ["Гиалрепайер-10 Экзо 5мл", "10000"], ["Filorga NCTF 135 НА 3 мл", "12000"], ["Filorga M-НА 10 3 мл", "12000"], ["Анестезирующий крем", "1000"], ["", ""], ["Для зоны вокруг глаз", ""], ["Meso Eye 1.0 мл", "13000"], ["Revi 1.0 мл", "9000"], ["Гиалрипайер Лифт Айс 1.0 мл", "8000"], ["Plinest Fast 1.0 мл", "8500"], ["Plinest Fast 2.0 мл", "15000"], ["СФЕРОгель Лайт 1.0 мл", "11500"], ["СФЕРОгель Медиум 0,5 мл", "9500"], ["СФЕРОгель Медиум 1.0 мл", "13500"], ["СФЕРОгель Лонг 0,5 мл", "12000"], ["Анестезия", "500"], ["Мезотерапия для волос", "руб."], ["MESOLINE «Роскошные волосы» 5 мл", "6000"], ["CYTOCARE Haircare 5 мл", "7000"], ["Поверхностные и поверхностно-срединные пилинги", "руб."], ["Поверхностные пилинги", ""], ["Миндальный пилинг", "6500"], ["Азелаиновый пилинг", "6500"], ["Феруловый (нанопилинг)", "6500"], ["Поверхностно-срединные пилинги", ""], ["Салициловый", "8000"], ["Пилинг Джесснера", "8000"], ["Ретиноловый (желтый)", "8000"]];
 
     let parsedSections = [];
     let activeSectionId = "all";
+
+    const navChipsOuter = document.getElementById("navChipsOuter");
+    const navChipsEl = document.getElementById("navChips");
+    const chipsPrevBtn = document.getElementById("chipsPrev");
+    const chipsNextBtn = document.getElementById("chipsNext");
+
+    function updateChipsArrows() {
+      const maxScroll = navChipsEl.scrollWidth - navChipsEl.clientWidth;
+      navChipsOuter.classList.toggle("can-left", navChipsEl.scrollLeft > 4);
+      navChipsOuter.classList.toggle("can-right", maxScroll - navChipsEl.scrollLeft > 4);
+    }
 
     function normalizeSheetUrl(rawUrl) {
       if (!rawUrl || !rawUrl.trim()) return "";
@@ -619,18 +756,33 @@
     }
 
     function renderChips() {
-      const wrap = document.getElementById("navChips");
       let html = '<button type="button" class="nav-chip active" data-sec="all">Все разделы</button>';
       parsedSections.forEach(sec => {
-        html += `<button type="button" class="nav-chip" data-sec="${sec.id}">${escapeHtml(sec.title)}</button>`;
+        const isAct = activeSectionId === sec.id ? " active" : "";
+        html += `<button type="button" class="nav-chip${isAct}" data-sec="${sec.id}">${escapeHtml(sec.title)}</button>`;
       });
-      wrap.innerHTML = html;
+      if (activeSectionId !== "all") {
+        html = html.replace('class="nav-chip active" data-sec="all"', 'class="nav-chip" data-sec="all"');
+      }
+      navChipsEl.innerHTML = html;
 
-      wrap.querySelectorAll(".nav-chip").forEach(btn => {
+      navChipsEl.querySelectorAll(".nav-chip").forEach(btn => {
         btn.addEventListener("click", () => {
           activeSectionId = btn.getAttribute("data-sec");
-          wrap.querySelectorAll(".nav-chip").forEach(b => b.classList.remove("active"));
+          navChipsEl.querySelectorAll(".nav-chip").forEach(b => b.classList.remove("active"));
           btn.classList.add("active");
+
+          // Докручиваем частично обрезанную кнопку в видимую зону ленты
+          const btnLeft = btn.offsetLeft;
+          const btnRight = btnLeft + btn.offsetWidth;
+          const viewLeft = navChipsEl.scrollLeft;
+          const viewRight = viewLeft + navChipsEl.clientWidth;
+          if (btnLeft < viewLeft + 36) {
+            navChipsEl.scrollTo({ left: Math.max(0, btnLeft - 44), behavior: "smooth" });
+          } else if (btnRight > viewRight - 36) {
+            navChipsEl.scrollTo({ left: btnRight - navChipsEl.clientWidth + 44, behavior: "smooth" });
+          }
+
           renderTables(document.getElementById("searchInput").value);
           if (activeSectionId !== "all") {
             const el = document.getElementById(activeSectionId);
@@ -640,7 +792,77 @@
           }
         });
       });
+
+      requestAnimationFrame(updateChipsArrows);
     }
+
+    // Управление лентой разделов на ПК: стрелки, перетаскивание мышкой и колёсико
+    chipsPrevBtn.addEventListener("click", () => {
+      navChipsEl.scrollBy({ left: -320, behavior: "smooth" });
+    });
+
+    chipsNextBtn.addEventListener("click", () => {
+      navChipsEl.scrollBy({ left: 320, behavior: "smooth" });
+    });
+
+    navChipsEl.addEventListener("scroll", updateChipsArrows, { passive: true });
+    window.addEventListener("resize", updateChipsArrows);
+
+    let isDraggingChips = false;
+    let chipsWasDragged = false;
+    let dragStartX = 0;
+    let dragStartScroll = 0;
+
+    navChipsEl.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      isDraggingChips = true;
+      chipsWasDragged = false;
+      dragStartX = e.pageX;
+      dragStartScroll = navChipsEl.scrollLeft;
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isDraggingChips) return;
+      const dx = e.pageX - dragStartX;
+      if (Math.abs(dx) > 5) {
+        chipsWasDragged = true;
+        navChipsEl.classList.add("dragging");
+      }
+      if (chipsWasDragged) {
+        navChipsEl.scrollLeft = dragStartScroll - dx;
+        e.preventDefault();
+      }
+    });
+
+    window.addEventListener("mouseup", () => {
+      if (!isDraggingChips) return;
+      isDraggingChips = false;
+      navChipsEl.classList.remove("dragging");
+      if (chipsWasDragged) {
+        setTimeout(() => { chipsWasDragged = false; }, 50);
+      }
+    });
+
+    navChipsEl.addEventListener("click", (e) => {
+      if (chipsWasDragged) {
+        e.stopPropagation();
+        e.preventDefault();
+        chipsWasDragged = false;
+      }
+    }, true);
+
+    navChipsEl.addEventListener("wheel", (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        const maxScroll = navChipsEl.scrollWidth - navChipsEl.clientWidth;
+        if (maxScroll <= 0) return;
+        const atStart = navChipsEl.scrollLeft <= 0 && e.deltaY < 0;
+        const atEnd = navChipsEl.scrollLeft >= maxScroll - 1 && e.deltaY > 0;
+        if (!atStart && !atEnd) {
+          e.preventDefault();
+          navChipsEl.scrollLeft += e.deltaY;
+        }
+      }
+    }, { passive: false });
 
     function renderTables(query = "") {
       const container = document.getElementById("priceContainer");
